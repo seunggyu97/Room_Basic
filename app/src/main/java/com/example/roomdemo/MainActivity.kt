@@ -15,8 +15,8 @@ import com.example.roomdemo.db.SubscriberRepository
 class MainActivity : AppCompatActivity(){
     private lateinit var binding: ActivityMainBinding
     private lateinit var subscriberViewModel: SubscriberViewModel
-    override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
-        super.onCreate(savedInstanceState, persistentState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
         val dao = SubscriberDatabase.getInstance(application).subscriberDAO
         val repository = SubscriberRepository(dao)
@@ -24,6 +24,8 @@ class MainActivity : AppCompatActivity(){
         subscriberViewModel = ViewModelProvider(this, factory).get(SubscriberViewModel::class.java)
         binding.myViewModel = subscriberViewModel
         binding.lifecycleOwner = this
+
+        displaySubscribersList()
     }
 
     private fun displaySubscribersList(){
