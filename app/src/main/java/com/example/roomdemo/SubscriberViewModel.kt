@@ -5,12 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.roomdemo.db.Subscriber
 import com.example.roomdemo.db.SubscriberRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SubscriberViewModel(private val repository: SubscriberRepository) : ViewModel() {
 
     val subscribers = repository.subscribers
+    private var isUpdateOrDelete = false
+    private lateinit var subscriberToUpdateOrDelete: Subscriber
 
     val inputName = MutableLiveData<String>()
     val inputEmail = MutableLiveData<String>()
@@ -24,17 +28,28 @@ class SubscriberViewModel(private val repository: SubscriberRepository) : ViewMo
     }
 
     fun saveOrUpdate() {
-        val name = inputName.value!!
-        val email = inputEmail.value!!
+        if(isUpdateOrDelete){
+            subscriberToUpdateOrDelete.name = inputName.value!!
+            subscriberToUpdateOrDelete.email = inputEmail.value!!
+            update(subscriberToUpdateOrDelete)
+        }
+        else {
+            val name = inputName.value!!
+            val email = inputEmail.value!!
 
-        // autoGenerate(key값 자동증가) 설정되어있기 때문에 id는 0으로 설정
-        insert(Subscriber(0, name, email))
-        inputName.value = ""
-        inputEmail.value = ""
+            // autoGenerate(key값 자동증가) 설정되어있기 때문에 id는 0으로 설정
+            insert(Subscriber(0, name, email))
+            inputName.value = ""
+            inputEmail.value = ""
+        }
     }
 
     fun clearAllOrDelete() {
-        clearAll()
+        if (isUpdateOrDelete) {
+            delete(subscriberToUpdateOrDelete)
+        } else {
+            clearAll()
+        }
     }
 
     fun insert(subscriber: Subscriber) = viewModelScope.launch(IO) {
@@ -43,13 +58,36 @@ class SubscriberViewModel(private val repository: SubscriberRepository) : ViewMo
 
     fun update(subscriber: Subscriber) = viewModelScope.launch(IO) {
         repository.update(subscriber)
+        withContext(Dispatchers.Main){
+            inputName.value = ""
+            inputEmail.value = ""
+            isUpdateOrDelete = false
+            saveOrUpdateButtonText.value = "Save"
+            clearAllorDeleteButtonText.value = "Clear"
+        }
     }
 
     fun delete(subscriber: Subscriber) = viewModelScope.launch(IO) {
         repository.delete(subscriber)
+        withContext(Dispatchers.Main){
+            inputName.value = ""
+            inputEmail.value = ""
+            isUpdateOrDelete = false
+            saveOrUpdateButtonText.value = "Save"
+            clearAllorDeleteButtonText.value = "Clear"
+        }
     }
 
-    fun clearAll() = viewModelScope.launch(IO){
+    fun clearAll() = viewModelScope.launch(IO) {
         repository.deleteAll()
+    }
+
+    fun initUpdateAndDelete(subscriber: Subscriber) {
+        inputName.value = subscriber.name
+        inputEmail.value = subscriber.email
+        isUpdateOrDelete = true
+        subscriberToUpdateOrDelete = subscriber
+        saveOrUpdateButtonText.value = "Update"
+        clearAllorDeleteButtonText.value = "Delete"
     }
 }
